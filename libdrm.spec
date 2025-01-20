@@ -252,13 +252,11 @@ Utility programs for the kernel DRM interface.  Will void your warranty.
 	
   %{bcond_meson valgrind}              \
 	
-  %{bcond_meson_tf freedreno_kgsl}        \
+  %{bcond_meson_tf freedreno_kgsl}     \
 	
   %{bcond_meson_tf install_test_programs} \
 	
-  %{bcond_meson_tf udev}                  \
-	
-  %{nil}
+  %{bcond_meson_tf udev}
 	
 %meson_build
 	
