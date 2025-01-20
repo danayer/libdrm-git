@@ -91,7 +91,7 @@ end}
  
 	
 %global lib_version 124
-%global commit a7eb2cfd53a70fcd9ba9dcfad80a3994642f362f
+%global commit a7eb2cfd53a70
 %global shortcommit a7eb2cf
 
  
