@@ -32,10 +32,26 @@ jobs:
         COMMIT=$(cat latest_commit.txt)
         SHORTCOMMIT=${COMMIT:0:7}
         
-        # Update both lib_version and commit hashes
+        # Get current values from spec file
+        OLD_LIB_VERSION=$(grep -oP '^%global lib_version \K\d+' libdrm.spec)
+        OLD_COMMIT=$(grep -oP '^%global commit \K\w+' libdrm.spec)
+        
+        # Check if anything changed
+        if [ "$LIB_VERSION" != "$OLD_LIB_VERSION" ] || [ "$COMMIT" != "$OLD_COMMIT" ]; then
+          # Get current subversion number
+          CURRENT_SUBVERSION=$(grep -oP 'Version:\s+2\.4\.%\{lib_version\}\.\K\d+' libdrm.spec)
+          # Increment subversion
+          NEW_SUBVERSION=$((CURRENT_SUBVERSION + 1))
+        else
+          # No changes, keep current subversion
+          NEW_SUBVERSION=$(grep -oP 'Version:\s+2\.4\.%\{lib_version\}\.\K\d+' libdrm.spec)
+        fi
+        
+        # Update spec file
         sed -i "s/^%global lib_version .*/%global lib_version ${LIB_VERSION}/" libdrm.spec
         sed -i "s/^%global commit .*/%global commit ${COMMIT}/" libdrm.spec
         sed -i "s/^%global shortcommit .*/%global shortcommit ${SHORTCOMMIT}/" libdrm.spec
+        sed -i "s/Version:\s*2\.4\.%{lib_version}\.[0-9]\+/Version:        2.4.%{lib_version}.${NEW_SUBVERSION}/" libdrm.spec
 
     - name: Commit and push changes
       run: |
