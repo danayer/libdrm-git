@@ -90,9 +90,9 @@ end}
 	
  
 	
-%global lib_version 100
-%global commit 124acf42db8adf5915140bc9978f9966b7c6aa1a
-%global shortcommit %(c=%{commit}; echo ${c:0:7})
+%global lib_version 124
+%global commit a7eb2cfd53a70fcd9ba9dcfad80a3994642f362f
+%global shortcommit a7eb2cf
 
  
 	
@@ -100,7 +100,7 @@ Name:           libdrm
 	
 Summary:        Direct Rendering Manager runtime library
 	
-Version:        2.4.%{lib_version}.1.%{shortcommit}
+Version:        2.4.%{lib_version}.2.%{shortcommit}
 	
 Release:        2%{?dist}
 	
