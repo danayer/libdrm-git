@@ -125,6 +125,8 @@ BuildRequires:  gcc
 BuildRequires:  libatomic_ops-devel
 	
 BuildRequires:  kernel-headers
+
+BuildRequires:  pkgconfig(cairo)
 	
 %if %{with intel}
 	
