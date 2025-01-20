@@ -214,7 +214,7 @@ Utility programs for the kernel DRM interface.  Will void your warranty.
 	
 %prep
 	
-%autosetup -p1
+%autosetup -n drm-%{commit}
 	
  
 	
