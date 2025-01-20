@@ -223,41 +223,23 @@ Utility programs for the kernel DRM interface.  Will void your warranty.
 %build
 	
 %meson \
-	
-  %{bcond_meson intel}                 \
-	
-  %{bcond_meson radeon}                \
-	
-  %{bcond_meson amdgpu}                \
-	
-  %{bcond_meson nouveau}               \
-	
-  %{bcond_meson vmwgfx}                \
-	
-  %{bcond_meson omap}                  \
-	
-  %{bcond_meson exynos}                \
-	
-  %{bcond_meson freedreno}             \
-	
-  %{bcond_meson tegra}                 \
-	
-  %{bcond_meson vc4}                   \
-	
-  %{bcond_meson etnaviv}               \
-	
-  %{bcond_meson cairo_tests}           \
-	
-  %{bcond_meson man_pages}             \
-	
-  %{bcond_meson valgrind}              \
-	
-  %{bcond_meson_tf freedreno_kgsl}     \
-	
+  %{bcond_meson intel} \
+  %{bcond_meson radeon} \
+  %{bcond_meson amdgpu} \
+  %{bcond_meson nouveau} \
+  %{bcond_meson vmwgfx} \
+  %{bcond_meson omap} \
+  %{bcond_meson exynos} \
+  %{bcond_meson freedreno} \
+  %{bcond_meson tegra} \
+  %{bcond_meson vc4} \
+  %{bcond_meson etnaviv} \
+  %{bcond_meson cairo_tests} \
+  %{bcond_meson man_pages} \
+  %{bcond_meson valgrind} \
+  %{bcond_meson_tf freedreno_kgsl} \
   %{bcond_meson_tf install_test_programs} \
-	
   %{bcond_meson_tf udev}
-	
 %meson_build
 	
 	
