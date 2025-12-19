@@ -2,12 +2,12 @@ name: Update libdrm.spec
 
 on:
   schedule:
-    - cron: "0 0 * * *"   # раз в день
-  workflow_dispatch:
+    - cron: "0 0 * * *" # Запуск раз в день
+  workflow_dispatch:     # Ручной запуск
 
 jobs:
   update-spec:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     permissions:
       contents: write
 
@@ -15,68 +15,47 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Get latest libdrm version and commit from GitLab
+      - name: Get latest version and commit from upstream
         run: |
-          TAG=$(curl -s "https://gitlab.freedesktop.org/api/v4/projects/mesa%2Fdrm/repository/tags" \
-            | jq -r '.[].name' \
-            | grep '^libdrm-' \
-            | head -n1)
+          # Получаем последний тег libdrm (только числа)
+          LATEST_TAG=$(curl -s "https://gitlab.freedesktop.org/api/v4/projects/mesa%2Fdrm/repository/tags" \
+                        | jq -r '.[0].name' | grep -oP '\d+\.\d+\.\d+')
+          LATEST_LIB_VERSION=$(echo "$LATEST_TAG" | cut -d'.' -f3)
 
-          if [ -z "$TAG" ]; then
-            echo "Failed to fetch libdrm tag"
-            exit 1
-          fi
+          # Получаем последний коммит
+          LATEST_COMMIT=$(curl -s "https://gitlab.freedesktop.org/api/v4/projects/mesa%2Fdrm/repository/commits" \
+                        | jq -r '.[0].id')
+          SHORTCOMMIT=${LATEST_COMMIT:0:7}
 
-          # libdrm-X.Y.Z → Z
-          LIB_VERSION=$(echo "$TAG" | sed 's/^libdrm-[0-9]\+\.[0-9]\+\.//')
+          echo "LATEST_LIB_VERSION=$LATEST_LIB_VERSION" >> $GITHUB_ENV
+          echo "LATEST_COMMIT=$LATEST_COMMIT" >> $GITHUB_ENV
+          echo "SHORTCOMMIT=$SHORTCOMMIT" >> $GITHUB_ENV
 
-          COMMIT=$(curl -s "https://gitlab.freedesktop.org/api/v4/projects/mesa%2Fdrm/repository/commits" \
-            | jq -r '.[0].id')
-
-          if [ -z "$COMMIT" ]; then
-            echo "Failed to fetch commit"
-            exit 1
-          fi
-
-          echo "LIB_VERSION=$LIB_VERSION" >> "$GITHUB_ENV"
-          echo "COMMIT=$COMMIT" >> "$GITHUB_ENV"
-          echo "SHORTCOMMIT=${COMMIT:0:7}" >> "$GITHUB_ENV"
-
-      - name: Check current spec and calculate new version
+      - name: Check current lib_version
         run: |
-          OLD_LIB_VERSION=$(sed -n 's/^%global[[:space:]]\+lib_version[[:space:]]\+\([0-9]\+\).*/\1/p' libdrm.spec)
-          OLD_COMMIT=$(sed -n 's/^%global[[:space:]]\+commit[[:space:]]\+\([a-f0-9]\+\).*/\1/p' libdrm.spec)
+          CURRENT_LIB_VERSION=$(grep -oP '^%global lib_version\s+\K\d+' libdrm.spec)
+          CURRENT_COMMIT=$(grep -oP '^%global commit\s+\K\w+' libdrm.spec)
 
-          CURRENT_VERSION=$(sed -n 's/^[[:space:]]*Version:[[:space:]]*2\.4\.%{lib_version}\.\([0-9]\+\).*/\1/p' libdrm.spec)
-
-          if [ -z "$CURRENT_VERSION" ]; then
-            CURRENT_VERSION=0
-          fi
-
-          if [ "$LIB_VERSION" != "$OLD_LIB_VERSION" ] || [ "$COMMIT" != "$OLD_COMMIT" ]; then
-            NEW_SUBVERSION=$((CURRENT_VERSION + 1))
-            echo "UPDATE_NEEDED=true" >> "$GITHUB_ENV"
+          if [ "$CURRENT_LIB_VERSION" != "$LATEST_LIB_VERSION" ] || [ "$CURRENT_COMMIT" != "$LATEST_COMMIT" ]; then
+            echo "UPDATE_NEEDED=true" >> $GITHUB_ENV
           else
-            NEW_SUBVERSION="$CURRENT_VERSION"
-            echo "UPDATE_NEEDED=false" >> "$GITHUB_ENV"
+            echo "UPDATE_NEEDED=false" >> $GITHUB_ENV
           fi
 
-          echo "NEW_SUBVERSION=$NEW_SUBVERSION" >> "$GITHUB_ENV"
-
-      - name: Update libdrm.spec
+      - name: Update spec file
         if: env.UPDATE_NEEDED == 'true'
         run: |
-          sed -i "s/^%global[[:space:]]\+lib_version.*/%global lib_version $LIB_VERSION/" libdrm.spec
-          sed -i "s/^%global[[:space:]]\+commit.*/%global commit $COMMIT/" libdrm.spec
-          sed -i "s/^%global[[:space:]]\+shortcommit.*/%global shortcommit $SHORTCOMMIT/" libdrm.spec
-          sed -i "s/^[[:space:]]*Version:.*/Version:        2.4.%{lib_version}.$NEW_SUBVERSION/" libdrm.spec
+          sed -i "s/^%global lib_version .*/%global lib_version $LATEST_LIB_VERSION/" libdrm.spec
+          sed -i "s/^%global commit .*/%global commit $LATEST_COMMIT/" libdrm.spec
+          sed -i "s/^%global shortcommit .*/%global shortcommit $SHORTCOMMIT/" libdrm.spec
 
       - name: Commit and push changes
         if: env.UPDATE_NEEDED == 'true'
         run: |
-          git config --global user.name "GitHub Actions"
+          git config --global user.name "GitHub Actions Bot"
           git config --global user.email "actions@github.com"
-
           git add libdrm.spec
-          git commit -m "Update libdrm.spec to libdrm-$LIB_VERSION ($SHORTCOMMIT)"
-          git push
+          git commit -m "Update libdrm: lib_version $LATEST_LIB_VERSION, commit $SHORTCOMMIT"
+          git push origin HEAD:${{ github.ref_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
