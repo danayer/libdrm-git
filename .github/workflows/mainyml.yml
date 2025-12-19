@@ -1,21 +1,69 @@
-- name: Get latest version and commit from upstream
-  run: |
-    # Получаем последний тег libdrm
-    LATEST_TAG=$(curl -s "https://gitlab.freedesktop.org/api/v4/projects/10539/repository/tags" \
-                 | jq -r '.[0].name')
+name: Update libdrm.spec
 
-    if [ -z "$LATEST_TAG" ]; then
-      echo "Error: could not fetch latest tag"
-      exit 1
-    fi
+on:
+  schedule:
+    - cron: "0 0 * * *" # Запуск раз в день
+  workflow_dispatch:     # Ручной запуск
 
-    LATEST_LIB_VERSION=$(echo "$LATEST_TAG" | grep -oP '\d+\.\d+\.\d+' | cut -d'.' -f3)
+jobs:
+  update-spec:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
-    # Последний коммит
-    LATEST_COMMIT=$(curl -s "https://gitlab.freedesktop.org/api/v4/projects/10539/repository/commits" \
-                  | jq -r '.[0].id')
-    SHORTCOMMIT=${LATEST_COMMIT:0:7}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    echo "LATEST_LIB_VERSION=$LATEST_LIB_VERSION" >> $GITHUB_ENV
-    echo "LATEST_COMMIT=$LATEST_COMMIT" >> $GITHUB_ENV
-    echo "SHORTCOMMIT=$SHORTCOMMIT" >> $GITHUB_ENV
+      - name: Get latest version and commit from upstream
+        run: |
+          # Получаем последний тег libdrm (Project ID: 10539)
+          LATEST_TAG=$(curl -s "https://gitlab.freedesktop.org/api/v4/projects/10539/repository/tags" \
+                       | jq -r '.[0].name')
+
+          if [ -z "$LATEST_TAG" ]; then
+            echo "Error: could not fetch latest tag"
+            exit 1
+          fi
+
+          # Берём третью цифру версии как lib_version
+          LATEST_LIB_VERSION=$(echo "$LATEST_TAG" | grep -oP '\d+\.\d+\.\d+' | cut -d'.' -f3)
+
+          # Получаем последний коммит
+          LATEST_COMMIT=$(curl -s "https://gitlab.freedesktop.org/api/v4/projects/10539/repository/commits" \
+                        | jq -r '.[0].id')
+          SHORTCOMMIT=${LATEST_COMMIT:0:7}
+
+          # Записываем переменные в окружение
+          echo "LATEST_LIB_VERSION=$LATEST_LIB_VERSION" >> $GITHUB_ENV
+          echo "LATEST_COMMIT=$LATEST_COMMIT" >> $GITHUB_ENV
+          echo "SHORTCOMMIT=$SHORTCOMMIT" >> $GITHUB_ENV
+
+      - name: Check current lib_version and commit
+        run: |
+          CURRENT_LIB_VERSION=$(grep -oP '^%global lib_version\s+\K\d+' libdrm.spec)
+          CURRENT_COMMIT=$(grep -oP '^%global commit\s+\K\w+' libdrm.spec)
+
+          if [ "$CURRENT_LIB_VERSION" != "$LATEST_LIB_VERSION" ] || [ "$CURRENT_COMMIT" != "$LATEST_COMMIT" ]; then
+            echo "UPDATE_NEEDED=true" >> $GITHUB_ENV
+          else
+            echo "UPDATE_NEEDED=false" >> $GITHUB_ENV
+          fi
+
+      - name: Update spec file
+        if: env.UPDATE_NEEDED == 'true'
+        run: |
+          sed -i "s/^%global lib_version .*/%global lib_version $LATEST_LIB_VERSION/" libdrm.spec
+          sed -i "s/^%global commit .*/%global commit $LATEST_COMMIT/" libdrm.spec
+          sed -i "s/^%global shortcommit .*/%global shortcommit $SHORTCOMMIT/" libdrm.spec
+
+      - name: Commit and push changes
+        if: env.UPDATE_NEEDED == 'true'
+        run: |
+          git config --global user.name "GitHub Actions Bot"
+          git config --global user.email "actions@github.com"
+          git add libdrm.spec
+          git commit -m "Update libdrm: lib_version $LATEST_LIB_VERSION, commit $SHORTCOMMIT"
+          git push origin HEAD:${{ github.ref_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
