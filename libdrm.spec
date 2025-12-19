@@ -90,10 +90,8 @@ end}
 	
  
 	
-%global lib_version 124
-%global commit b65d6ede3ebe64dbde5805007ddef22f390f8050
-%global shortcommit b65d6ed
-
+%global lib_version 128
+	
  
 	
 Name:           libdrm
@@ -122,11 +120,7 @@ BuildRequires:  meson >= 0.43
 	
 BuildRequires:  gcc
 	
-BuildRequires:  libatomic_ops-devel
-	
 BuildRequires:  kernel-headers
-
-BuildRequires:  pkgconfig(cairo)
 	
 %if %{with intel}
 	
@@ -216,30 +210,50 @@ Utility programs for the kernel DRM interface.  Will void your warranty.
 	
 %prep
 	
-%autosetup -n drm-%{commit}
+%autosetup -p1
 	
  
 	
 %build
 	
 %meson \
-  %{bcond_meson intel} \
-  %{bcond_meson radeon} \
-  %{bcond_meson amdgpu} \
-  %{bcond_meson nouveau} \
-  %{bcond_meson vmwgfx} \
-  %{bcond_meson omap} \
-  %{bcond_meson exynos} \
-  %{bcond_meson freedreno} \
-  %{bcond_meson tegra} \
-  %{bcond_meson vc4} \
-  %{bcond_meson etnaviv} \
-  %{bcond_meson cairo_tests} \
-  %{bcond_meson man_pages} \
-  %{bcond_meson valgrind} \
-  %{bcond_meson_tf freedreno_kgsl} \
+	
+  %{bcond_meson intel}                 \
+	
+  %{bcond_meson radeon}                \
+	
+  %{bcond_meson amdgpu}                \
+	
+  %{bcond_meson nouveau}               \
+	
+  %{bcond_meson vmwgfx}                \
+	
+  %{bcond_meson omap}                  \
+	
+  %{bcond_meson exynos}                \
+	
+  %{bcond_meson freedreno}             \
+	
+  %{bcond_meson tegra}                 \
+	
+  %{bcond_meson vc4}                   \
+	
+  %{bcond_meson etnaviv}               \
+	
+  %{bcond_meson cairo_tests}           \
+	
+  %{bcond_meson man_pages}             \
+	
+  %{bcond_meson valgrind}              \
+	
+  %{bcond_meson_tf freedreno_kgsl}        \
+	
   %{bcond_meson_tf install_test_programs} \
-  %{bcond_meson_tf udev}
+	
+  %{bcond_meson_tf udev}                  \
+	
+  %{nil}
+	
 %meson_build
 	
 	
@@ -539,7 +553,3 @@ cp %{SOURCE1} %{buildroot}%{_docdir}/libdrm
 %{_bindir}/vbltest
 	
 %endif
-	
- 
-	
-%changelog
